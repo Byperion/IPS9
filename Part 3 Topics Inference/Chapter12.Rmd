@@ -1,0 +1,202 @@
+---
+title: "IPS9 in R: One-way analysis of variance (Chapter 12)"
+author: "Shukry Zablah (szablah20@amherst.edu) and Nicholas Horton (nhorton@amherst.edu)"
+date: "July 25, 2018"
+output: 
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 4
+    fig_width: 6
+---
+
+
+```{r, include = FALSE}
+# Don't delete this chunk if you are using the mosaic package
+# This loads the mosaic and dplyr packages
+require(mosaic)
+library(DescTools)
+```
+
+```{r, include = FALSE}
+# knitr settings to control how R chunks work.
+knitr::opts_chunk$set(
+  tidy = FALSE,     # display code as typed
+  size = "small"    # slightly smaller font for code
+)
+```
+
+## Introduction and background 
+
+These documents are intended to help describe how to undertake analyses introduced 
+as examples in the Ninth Edition of \emph{Introduction to the Practice of Statistics} (2017) by Moore, McCabe, and Craig.
+
+More information about the book can be found [here](https://macmillanlearning.com/Catalog/product/introductiontothepracticeofstatistics-ninthedition-moore).
+The data used in these documents can be found under Data Sets in the [Student Site](https://www.macmillanlearning.com/catalog/studentresources/ips9e?_ga=2.29224888.526668012.1531487989-1209447309.1529940008#). This
+file as well as the associated R Markdown reproducible analysis source file used to create it can be found at https://nhorton.people.amherst.edu/ips9/.
+
+This work leverages initiatives undertaken by Project MOSAIC (http://www.mosaic-web.org), an NSF-funded effort to improve the teaching of statistics, calculus, science and computing in the undergraduate curriculum. In particular, we utilize the `mosaic` package, which was written to simplify the use of R for introductory statistics courses. A short summary of the R needed to teach introductory statistics can be found in the mosaic package vignettes (http://cran.r-project.org/web/packages/mosaic).  A paper describing the mosaic approach was published in the *R Journal*: https://journal.r-project.org/archive/2017/RJ-2017-024.
+  
+## Chapter 12: One-way analysis of variance
+This file replicates the analyses from Chapter 12: One-way analysis of variance.
+
+First, load the packages that will be needed for this document: 
+```{r load-packages}
+library(mosaic)
+library(readr)
+library(DescTools)
+```
+
+> Complicated computations do not guarantee a valid statistical analysis. (648)
+
+### Section 12.1: Inference for one-way analysis of variance
+
+We begin with Example 12.3 in page 648. Let's read in our data
+
+```{r Friends1, message=FALSE}
+#Ex12.3
+Friends <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter12/EG12-03FRIENDS.csv")
+head(Friends)
+```
+
+We want to get a nice summary table like the one in example 12.3. To do this we use the `favstats()` function. 
+
+```{r Friends2}
+#Ex12.3
+SummaryFriends <- favstats(Score ~ Friends, data = Friends)
+SummaryFriends
+```
+
+There are some helpful visualizations starting in page 649 that will help us in our analysis of our Friends data. 
+
+The `gf_histogram()` function can be used to recreate the histogram (note the `|` used to facet based on the number of friends).
+
+```{r Friends3}
+#Fig12.4
+gf_dhistogram(~ Score | Friends, data = Friends, binwidth = 0.4)
+```
+
+To recreate the boxplot (note: we have to convert Friends to a factor for the boxplots to work): 
+
+```{r Friends4}
+#Fig12.4
+gf_boxplot(Score ~ as.factor(Friends), data = Friends)
+```
+
+And to recreate the linegraph (note the piping through gf_point to add the points to the line): 
+
+```{r Friends5}
+#Fig12.4
+gf_line(mean ~ as.factor(Friends), data = SummaryFriends, group = 1) %>% gf_point() 
+```
+
+These visualizations are a quick way to know what is going on with your data. The `favstats()` command can be used to generate summary statistics by group.
+
+```{r Friends6}
+#Ex12.7
+favstats(Score ~ Friends, data = Friends)
+```
+
+A more general approach uses the `group_by()` and `summarize()` functions as part of the tidyverse/dplyr packages.
+
+```{r Friends7}
+#Ex12.7
+Friends %>%
+  group_by(Friends) %>%
+  summarize(N = n(),
+            Mean = mean(Score), 
+            Std.Dev = sd(Score), 
+            Minimum = min(Score),
+            Maximum = max(Score))
+```
+
+And we can get the confidence interval for one of the groups. 
+
+```{r Friends8}
+#Ex12.7
+confint(lm(Score ~ 1, data = filter(Friends, Friends == 102)))
+```
+
+The ANOVA analysis can be done in a straightforward manner in R. We will create a linear model out of the Scores given their Friends group and pipe it into the anova function. (Note: the anova function takes an lm object. This is useful to us since we would maybe want to use the lm object for other purposes too.)
+
+```{r Friends9}
+#Ex12.8
+modFriends <- lm(Score ~ Friends, data = Friends)
+modFriends %>%
+  anova()
+```
+
+Let's turn to page 663 and look at Example 12.15. 
+
+```{r Eyes1, message=FALSE}
+#Ex12.15
+Eyes <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter12/EG12-15EYES.csv")
+``` 
+
+We will recreate the ouput from the Excel spreadsheet. With the help of the `group_by()` and `summarize()` idiom we can use the aggregating functions to summarize our dataset. To recreate the anova part of the output we use again the `anova()` function that takes an `lm` object.   
+
+```{r Eyes2}
+#Ex12.15
+favstats(Score ~ Group, data = Eyes)
+
+modEyes <- lm(Score ~ Group, data = Eyes)
+modEyes %>% 
+  anova()
+```
+
+### Section 12.2: Comparing the means
+
+Anova gives us the answer to the question "are the differences between the means of the groups statistically significant?" However, it gives no information on what these differences are. This section covers those PostHocTests. 
+
+Let's read in the dataset for the times for times people spend on Facebook. 
+
+```{r Facetym1, message=FALSE}
+#Ex12.17
+Facetym <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter12/EG12-17FACETYM.csv")
+```
+
+The analysis starts by checking the data. We will check the distribution of our data with a qqplot. 
+
+```{r Facetym2}
+#Fig12.11
+gf_qq(~ Time, data = Facetym) %>% 
+  gf_qqline()
+```
+
+The `gf_qq()` is piped to `gf_qqline()` in order to get the reference line through the middle of the plot. Note the skewdness of the data.
+
+We now visualize the transformed data. 
+
+```{r Facetym3}
+#Fig12.13
+gf_qq(~ SqrtTime, data = Facetym) %>% 
+  gf_qqline()
+```
+
+Much better. Next step in our analysis is to get some descriptive statistics about the data. After that we perform the Anova test with `anova()`. 
+
+```{r Facetym4}
+#Fig12.12
+favstats(SqrtTime ~ Grp, data = Facetym)
+
+modFacetym <- lm(SqrtTime ~ factor(Grp), data = Facetym)
+modFacetym %>% 
+  anova()
+```
+
+Since the result is statistically significant, there is enough evidence to reject the null hypothesis that the mean differences are all 0. However, we now need PostHocTests in order to find out what those differences are. 
+
+We will use a package called `DescTools` which has many multiple comparisons tests for after you reject the null hypothesis based on your `anova()` output. 
+
+To use the `PostHocTest()` function we have to pass it an object returned by the `aov()` function, which does the ANOVA test for a formula (and not an `lm` object). After that we only have to specify the `method` parameter, which is equal to the name of the multiple comparisons test that you want to perform. 
+
+```{r Facetym5, message=FALSE}
+PostHocTest(aov(SqrtTime ~ factor(Grp), data = Facetym), method = "bonferroni")
+PostHocTest(aov(SqrtTime ~ factor(Grp), data = Facetym), method = "lsd")
+```
+
+XX Anova power? 

@@ -1,0 +1,286 @@
+---
+title: "IPS9 in R: Inference for Categorical Data (Chapter 9)"
+author: "Shukry Zablah (szablah20@amherst.edu) and Nicholas Horton (nhorton@amherst.edu)"
+date: "January 19, 2019"
+output: 
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 4
+    fig_width: 6
+---
+
+
+```{r, include = FALSE}
+# Don't delete this chunk if you are using the mosaic package
+# This loads the mosaic and dplyr packages
+require(mosaic)
+```
+
+```{r, include = FALSE}
+# knitr settings to control how R chunks work.
+knitr::opts_chunk$set(
+  tidy = FALSE,     # display code as typed
+  size = "small"    # slightly smaller font for code
+)
+```
+
+## Introduction and background 
+
+These documents are intended to help describe how to undertake analyses introduced 
+as examples in the Ninth Edition of \emph{Introduction to the Practice of Statistics} (2017) by Moore, McCabe, and Craig.
+
+More information about the book can be found [here](https://macmillanlearning.com/Catalog/product/introductiontothepracticeofstatistics-ninthedition-moore).
+The data used in these documents can be found under Data Sets in the [Student Site](https://www.macmillanlearning.com/catalog/studentresources/ips9e?_ga=2.29224888.526668012.1531487989-1209447309.1529940008#). This
+file as well as the associated R Markdown reproducible analysis source file used to create it can be found at https://nhorton.people.amherst.edu/ips9/.
+
+This work leverages initiatives undertaken by Project MOSAIC (http://www.mosaic-web.org), an NSF-funded effort to improve the teaching of statistics, calculus, science and computing in the undergraduate curriculum. In particular, we utilize the `mosaic` package, which was written to simplify the use of R for introductory statistics courses. A short summary of the R needed to teach introductory statistics can be found in the mosaic package vignettes (http://cran.r-project.org/web/packages/mosaic).  A paper describing the mosaic approach was published in the *R Journal*: https://journal.r-project.org/archive/2017/RJ-2017-024.
+  
+## Chapter 9: Inference for Categorical Data
+This file replicates the analyses from Chapter 9: Inference for Categorical Data. 
+
+First, load the packages that will be needed for this document: 
+```{r load-packages}
+library(mosaic)
+library(readr)
+```
+
+### Section 9.1: Inference for two-way tables
+
+To recreate the dataset that was used in Example 9.1, we will use a combination of several `do()` calls and `rbind()`. This will allow us to create the observations with the specific attributes based on the counts that appear in the table. 
+
+We recreate it like this. 
+
+```{r Instag1}
+#Ex9.1
+Instag <- rbind(
+  do(298) * data.frame(Sex = "Men",  User = "No"),
+  do(209) * data.frame(Sex = "Women", User = "No"),
+  do(234) * data.frame(Sex = "Men",  User = "Yes"), 
+  do(328) * data.frame(Sex = "Women", User = "Yes")
+)  
+head(Instag)
+```
+
+We take a small peek of the dataset with the `head()` function that returns the first few observations from a given dataset. Some useful columns were returned with our dataset. You don't have to worry about them now. 
+
+We will get some tables that summarize the information displayed in Ex9.1. We can use the `tally()` function for this.
+
+```{r Instag2}
+#Ex9.1
+tally(User ~ Sex, data = Instag, margin = TRUE)
+tally(User ~ Sex, data = Instag, format = "proportion", margin = TRUE)
+```
+
+Now take look at Example 9.2 in page 526. To recreate that table of counts we simply have to call the `tally()` function and it will make the 2-way table for us. 
+We call it like this: 
+
+```{r Instag5}
+#Ex9.2
+tally(~ User + Sex, data = Instag, margins = TRUE)  
+```
+
+The `margins = TRUE` option makes sure that `tally()` ouputs the convenient Total columns just like in page 527. To understand the difference between our last two `tally()` calls, look at the Total column of our tables.
+
+Turn your attention to Example 9.3 now. After creating the dataset from the counts, we can use a similar `tally()` call to recreate the table and verify that our method to create the dataset is in fact accurate. 
+
+```{r Vaccine1}
+#Ex9.3
+Vaccine <- rbind(
+  do(729) * data.frame(Required = "Yes", Party = "Democratic"),
+  do(479) * data.frame(Required = "Yes", Party = "Republican"),
+  do(230) * data.frame(Required = "No",  Party = "Democratic"), 
+  do(258) * data.frame(Required = "No", Party = "Republican")
+)  
+
+tally(~ Required + Party, data = Vaccine, margins = TRUE)
+```
+
+Now we continue to explore our 2 way tables. In Example 9.5 we can see the marginal distribution of our Vaccine tables across political party preference. We recreate it with a call to `tally()` but this time we will use a new parameter too. 
+
+```{r Vaccine2}
+#Ex9.5
+tally(Required ~ Party, data = Vaccine, margins = TRUE, format = "percent")
+```
+
+The `format = "percent"` will nicely output the results in percentage form!
+
+The output from `tally()` is good enough. However, a picture is worth a thousand words. Let's try to create a bar graph out of the Vaccine dataset. 
+
+```{r Vaccine3}
+#Ex9.6
+gf_percents(~ Required, data = Vaccine, fill = ~ Party, position = "dodge")
+```
+
+With the help of `gf_percents()` we can plot the percentage of each group (e.g. Democratic & "No") and compare them. This is a useful way to draw insights from two variables at once. 
+
+Note: This is not an equivalent bar graph but still provides the same useful information. The original bar graph in page 530 graphs the percentages across political party (i.e. adding both columns belonging to a party will give 100%).
+
+Another way that we can visualize two categorical variables is to create a mosaic plot. We will use the `vcd` package's `mosaic()` function to plot the mosaic plot. Note the call resembles the same syntax of the `tally()` commands we made earlier. 
+
+```{r Vaccine4}
+#Ex9.7
+vcd::mosaic(Required ~ Party, data = Vaccine, shade = TRUE)
+```
+
+Having multiple ways to visualize varibles will help you analyze your data more thoroughly and communicate your findings in a more intuitive way. 
+
+In Example 9.7 we are interested in getting the expected counts of our Vaccine data. In R you can take advantage of the `xchisq.test()` function and get the relevant output like this: 
+
+```{r Vaccine5}
+#Ex9.8 pg.533
+chiSqVaccine <- xchisq.test(tally(Required ~ Party, data = Vaccine), correct = FALSE)
+with(chiSqVaccine, expected)
+```
+
+To understand what is going on in this code, break it down into its components. We are creating a variable called `chiSqVaccine` and we are assigning the output of the `xchisq.test()` call. The object stored in our variable will contain several useful fields as we will see. The first one is the expected values. To extract it from the object we use the `with()` function. 
+
+Note: We specify the `correct = FALSE` option to match the book's table. This option specifies that there should be no continuity correction applied to our test. You can see how the output changes by removing that option. 
+
+In a manner similar to the one above, we can get the observed counts we calculated with `tally()` before. We just retrieve the relevant field from our object with the `with()` function again.
+
+```{r Vaccine6}
+#Ex9.8
+with(chiSqVaccine, observed)
+```
+
+To see the output of the Chi-Square test discussed in Example 9.8 we just need to print the object we stored in our variable earlier.
+
+```{r Vaccine7}
+#Ex9.8
+chiSqVaccine
+```
+
+All this useful features are already built into how R's `xchisq.test()` function works. 
+
+Note: There is an error in the $\chi^2$ value in the book. While it showed the correct machine output, it specified the wrong $\chi^2$ squared value.
+
+We continue with Example 9.9 in page 537. 
+
+```{r Health1}
+#Ex9.9
+Health <- rbind(
+  do(69) *  data.frame(PhysAct = "Low", FruitConsumption = "Low"),
+  do(206) * data.frame(PhysAct = "Moderate", FruitConsumption = "Low"),
+  do(294) * data.frame(PhysAct = "Vigorous",  FruitConsumption = "Low"), 
+  do(25) *  data.frame(PhysAct = "Low", FruitConsumption = "Medium"),
+  do(126) * data.frame(PhysAct = "Moderate", FruitConsumption = "Medium"),
+  do(170) * data.frame(PhysAct = "Vigorous", FruitConsumption = "Medium"),
+  do(14) *  data.frame(PhysAct = "Low",  FruitConsumption = "High"), 
+  do(111) * data.frame(PhysAct = "Moderate", FruitConsumption = "High"),
+  do(169) * data.frame(PhysAct = "Vigorous", FruitConsumption = "High")
+)  
+```
+
+You should already know what is happening in the code chunk above. We will store the dataset into a variable called Health. 
+
+Now we recreate the table in page 537 as follows: 
+
+```{r Health2}
+#Ex9.9
+tally(~ FruitConsumption + PhysAct, data = Health, margins = TRUE)
+```
+
+The table above is the 2 way table of counts from the Health data. To get the percentages instead we use the `format` parameter. 
+
+```{r Health3}
+#Ex9.10
+tally(~ FruitConsumption + PhysAct, data = Health, margins = TRUE, format = "percent")
+```
+
+Again, visualizations will trump tables in all appropriate cases. We will create a faceted bar graph. 
+
+```{r Health4}
+#Fig9.7
+gf_percents(~ FruitConsumption | PhysAct, data = Health)
+```
+
+Note: These are not equivalent bar graphs to Figure 9.7, but they still provide the same useful information. 
+
+Now, let's get the expected counts for our Health data. 
+
+```{r Health5}
+#Ex9.11
+chiSqHealth <- xchisq.test(tally(FruitConsumption ~ PhysAct, data = Health), correct = FALSE)
+with(chiSqHealth, expected)
+```
+
+And our observed counts...
+
+```{r Health6}
+#Ex9.11
+with(chiSqHealth, observed)
+```
+
+And finally our $\chi^2$ statistic.
+
+```{r Health7}
+#Ex9.11
+chiSqHealth
+```
+
+Remember these are all possible thans to the functionality of the `xchisq.test()` function.
+
+### Section 9.2: Goodness of fit
+
+We will be using data of the ACT from six different states. We recreate our dataset from the counts. 
+
+```{r ACT1}
+#Ex9.13
+ACT <- rbind(
+  do(167) * data.frame(State = "AZ", label = 1),
+  do(257) * data.frame(State = "CA", label = 2),
+  do(257) * data.frame(State = "HI", label = 3),
+  do(297) * data.frame(State = "IN", label = 4),
+  do(107) * data.frame(State = "NV", label = 5),
+  do(482) * data.frame(State = "OH", label = 6)
+)
+```
+
+To get a sense of the number of participants in the study (pg 546) we can quickly do a `tally()` call on the State column. 
+
+```{r ACT2}
+#Ex9.13
+tally(~ State, data = ACT, margins = TRUE)
+```
+
+We will now import the population proportions from a csv file. We will use these values to see how close our sample counts are to the population values. 
+
+```{r ACT3, message=FALSE}
+#Ex9.13
+ACTPopProp <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter09/EG09-13ACT.csv")
+ACTPopProp
+```
+
+
+We will use the same `xchisq.test()` function from before. It is important to note the new behavior we expect from the function when we provide a vector of the population proportions. The expected counts and the $\chi^2$ value will depend on this new parameter. 
+
+```{r ACT4}
+#Ex9.13
+chisqACT <- xchisq.test(tally(~ State, data = ACT), p = c(0.105, .172, .164, .188, .07, .301), correct = FALSE)
+```
+
+Now that we have saved our object, we can access the expected counts and the test statistic just like before. 
+
+```{r ACT5}
+#Ex9.13
+with(chisqACT, expected)
+```
+
+```{r ACT6}
+#Ex9.14
+chisqACT
+```
+
+Another example of a field included in the return value of the `xchisq.test()` is the `residuals` field. Let's take a look. 
+
+```{r ACT7}
+#Ex9.15
+with(chisqACT, residuals)
+```
+
+And just like that, let R help you with most of the computations when you are analyzing your categorical variables. 

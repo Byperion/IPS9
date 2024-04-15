@@ -1,0 +1,147 @@
+---
+title: "IPS9 in R: Multiple regression (Chapter 11)"
+author: "Nicholas Horton (nhorton@amherst.edu)"
+date: "January 19, 2019"
+output: 
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 4
+    fig_width: 6
+---
+
+
+```{r, include = FALSE}
+# Don't delete this chunk if you are using the mosaic package
+# This loads the mosaic and dplyr packages
+require(mosaic)
+```
+
+```{r, include = FALSE}
+# knitr settings to control how R chunks work.
+knitr::opts_chunk$set(
+  tidy = FALSE,     # display code as typed
+  size = "small"    # slightly smaller font for code
+)
+```
+
+## Introduction and background 
+
+These documents are intended to help describe how to undertake analyses introduced 
+as examples in the Ninth Edition of \emph{Introduction to the Practice of Statistics} (2017) by Moore, McCabe, and Craig.
+
+More information about the book can be found [here](https://macmillanlearning.com/Catalog/product/introductiontothepracticeofstatistics-ninthedition-moore).
+The data used in these documents can be found under Data Sets in the [Student Site](https://www.macmillanlearning.com/catalog/studentresources/ips9e?_ga=2.29224888.526668012.1531487989-1209447309.1529940008#). This
+file as well as the associated R Markdown reproducible analysis source file used to create it can be found at https://nhorton.people.amherst.edu/ips9/.
+
+This work leverages initiatives undertaken by Project MOSAIC (http://www.mosaic-web.org), an NSF-funded effort to improve the teaching of statistics, calculus, science and computing in the undergraduate curriculum. In particular, we utilize the `mosaic` package, which was written to simplify the use of R for introductory statistics courses. A short summary of the R needed to teach introductory statistics can be found in the mosaic package vignettes (http://cran.r-project.org/web/packages/mosaic).  A paper describing the mosaic approach was published in the *R Journal*: https://journal.r-project.org/archive/2017/RJ-2017-024.
+  
+## Chapter 11: Multiple Regression
+This file replicates the analyses from Chapter 11: Multiple Regression.
+
+First, load the packages that will be needed for this document: 
+
+```{r load-packages}
+library(mosaic)
+library(readr)
+```
+
+### Section 11.1: Inference for multiple regression
+
+#### Example 11.1: Predicting early success in college
+
+```{r eg11-1, message=FALSE}
+GPA <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter11/EG11-01GPA.csv")
+# Figure 11.1, page 609
+head(GPA)
+```
+
+### Section 11.2: A Case Study
+
+```{r}
+# Figure 11.2, page 619
+favstats(~ GPA, data = GPA)
+favstats(~ HSM, data = GPA)
+favstats(~ HSS, data = GPA)
+favstats(~ HSE, data = GPA)
+favstats(~ SATM, data = GPA)
+favstats(~ SATCR, data = GPA)
+favstats(~ SATW, data = GPA)
+```
+
+```{r}
+# Figure 11.3, page 620
+gf_histogram(~ HSM, data = GPA) %>%
+  gf_labs(y = "Percent")# Doesn't look great
+gf_histogram(~ HSS, data = GPA) %>%
+  gf_labs(y = "Percent")
+gf_histogram(~ HSE, data = GPA) %>%
+  gf_labs(y = "Percent")
+```
+
+#### Relationships between pairs of variables
+
+```{r}
+# Figure 11.4, page 621
+options(digits = 2)
+cor(GPA)
+```
+
+#### Example 11.13: Pairwise relationships among variables in the GPA data set
+
+```{r message = FALSE, fig.width = 7, fig.height = 8}
+GPA <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter11/EX11-13GPA.csv")
+GPA <- GPA %>%
+  mutate(SEX = ifelse(SEX == 1, "F", "M"))
+library(GGally)
+# Figure 11.5
+GPA %>% select(-OBS) %>%
+  GGally::ggpairs()
+```
+
+#### Regression on high school grades
+
+```{r}
+# Figure 11.6, page 623
+gpamultlm <- lm(GPA ~ HSM + HSE + HSS, data = GPA)
+msummary(gpamultlm)
+```
+
+#### Examining the residuals
+
+```{r}
+# Figure 11.7, page 625
+gf_qq(~ resid(gpamultlm)) %>% 
+  gf_labs( x = "Normal Score", y = "Residual")
+gf_histogram(~ resid(gpamultlm), binwidth = .5) %>%
+  gf_labs(x = "Residual", y = "Percent")
+```
+
+#### Example 11.14: Residual plots for the GPA analysis
+
+#### Refining the model
+
+```{r}
+# Figure 11.8, page 626
+gpamultlm2 <- lm(GPA ~ HSM + HSS, data = GPA)
+msummary(gpamultlm2)
+```
+
+#### Regression using all variables
+
+```{r}
+# Figure 11.9
+gpasatlm <- lm(GPA ~ SATM + SATCR + SATW, data = GPA)
+msummary(gpasatlm)
+
+# Figure 11.10, page 628
+gpaalllm <- lm(GPA ~ SATM + SATCR + SATW + HSS + HSE + HSM, data = GPA)
+msummary(gpaalllm)
+
+# Figure 11.11, page 631
+MASS::stepAIC(gpaalllm) 
+```

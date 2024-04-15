@@ -1,0 +1,419 @@
+---
+title: "IPS9 in R: Looking at Data -- Relationships (Chapter 2)"
+author: "Margaret Chien and Nicholas Horton (nhorton@amherst.edu)"
+date: "July 26, 2018"
+output: 
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 4
+    fig_width: 6
+---
+
+
+```{r, include = FALSE}
+# Don't delete this chunk if you are using the mosaic package
+# This loads the mosaic and dplyr packages
+require(mosaic)
+require(vcd) # for the mosaicplot
+```
+
+```{r, include = FALSE}
+# knitr settings to control how R chunks work.
+knitr::opts_chunk$set(
+  tidy = FALSE,     # display code as typed
+  size = "small"    # slightly smaller font for code
+)
+```
+
+## Introduction and background 
+
+These documents are intended to help describe how to undertake analyses introduced 
+as examples in the Ninth Edition of \emph{Introduction to the Practice of Statistics} (2017) by Moore, McCabe, and Craig.
+
+More information about the book can be found [here](https://macmillanlearning.com/Catalog/product/introductiontothepracticeofstatistics-ninthedition-moore).
+The data used in these documents can be found under Data Sets in the [Student Site](https://www.macmillanlearning.com/catalog/studentresources/ips9e?_ga=2.29224888.526668012.1531487989-1209447309.1529940008#). This
+file as well as the associated R Markdown reproducible analysis source file used to create it can be found at https://nhorton.people.amherst.edu/ips9/.
+
+This work leverages initiatives undertaken by Project MOSAIC (http://www.mosaic-web.org), an NSF-funded effort to improve the teaching of statistics, calculus, science and computing in the undergraduate curriculum. In particular, we utilize the `mosaic` package, which was written to simplify the use of R for introductory statistics courses. A short summary of the R needed to teach introductory statistics can be found in the mosaic package vignettes (http://cran.r-project.org/web/packages/mosaic).  A paper describing the mosaic approach was published in the *R Journal*: https://journal.r-project.org/archive/2017/RJ-2017-024.
+  
+## Chapter 2: Looking at Data -- Relationships
+This file replicates the analyses from Chapter 2: Looking at Data -- Relationships.
+
+First, load the packages that will be needed for this document: 
+```{r load-packages}
+library(mosaic)
+library(readr)
+library(vcd)
+```
+
+### Section 2.1: Relationships 
+
+### Section 2.2: Scatterplots
+
+#### Example 2.8: Laundry detergents
+
+```{r}
+# page 85
+Laundry <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-008LAUNDRY.csv")
+```
+
+We use `read_csv()` from the `readr` package to import data into R. We can use `message=FALSE` to suppress the warning messages for readability.    
+
+```{r}
+# 2.10: Examine the spreadsheet
+favstats(~ Rating, data = Laundry)
+```
+
+The `favstats()` function summarizes useful statistics of variables.  
+
+```{r}
+# 2.11: Use the data set
+gf_histogram(~ Rating, data = Laundry, binwidth = 5)
+favstats(~ Price, data = Laundry)
+gf_histogram(~ Price, data = Laundry, binwidth = 5)
+```
+
+#### Example 2.9: Laundry detergents
+
+```{r}
+Laundry <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-009LAUNDRY.csv")
+# Figure 2.1, page 86
+gf_point(Rating ~ Price, data = Laundry, xlab = "Price per load (cents)")
+# Figure 2.2
+gf_point(Rating ~ Price, data = Laundry, xlab = "Price per load (cents)") %>%
+  gf_lims(x = c(0, 35))
+```
+
+```{r}
+# 2.12: Make a scatterplot (page 87)
+gf_jitter(Rating ~ Price, data = Laundry, xlab = "Price per load (cents)") %>%
+  gf_lims(x = c(0, 35))
+```
+
+We can use `gf_jitter()` to add some noise into the plot to show overlapped points. We also use `gf_lims()` to set x-axis limits on the plot.  
+
+```{r}
+# 2.13: Change the units
+Laundry2 <- Laundry %>%
+  mutate(Price = Price/100)
+favstats(~ Price, data = Laundry2)
+gf_point(Rating ~ Price, data = Laundry2, xlab = "Price per load (dollars)")
+```
+
+We use `mutate()` to create new variables in a dataset.  
+
+#### Example 2.10: Scatterplot with a straight line
+
+```{r}
+Laundry <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-010LAUND.csv")
+# Figure 2.3, page 88
+gf_point(Rating ~ Price, data = Laundry, xlab = "Price per load (cents)") %>%
+  gf_lm() 
+```
+
+#### Example 2.11: Education spending and population: Benchmarking
+
+```{r}
+EduSpending <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-011EDSPEND.csv")
+head(EduSpending)
+```
+
+We can use the `head()` function to look at the first rows of a data set.  
+
+```{r}
+# Figure 2.5, page 90
+gf_point(Spending ~ Population, data = EduSpending) %>%
+  gf_lm() %>%
+  gf_labs(x = "Population (millions)", y = "Spending ($ billion)")
+```
+
+#### Example 2.12: Calcium retention
+
+```{r}
+Calcium <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-012CALCIUM.csv")
+# Figure 2.6, page 90
+gf_point(CaRetention~ CaIntake, data = Calcium) %>%
+  gf_smooth(span = 1) %>%
+  gf_labs(x = "Calcium intake (mg/d)", y = "Calcium retention (mg/d)")
+```
+
+#### Example 2.13: Calcium retention with logarithms
+
+```{r}
+Calcium <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-013CALCIUM.csv")
+# Figure 2.7, page 91
+gf_point(LogRet ~ CaIntake, data = Calcium) %>%
+  gf_lm() %>%
+  gf_labs(x = "Calcium intake (mg/d)", y = "Log calcium retention")
+```
+
+#### Example 2.14: Education spending and population with logarithms
+
+```{r}
+EduSpending <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-014EDSPEND.csv")
+EduSpending <- EduSpending %>%
+  mutate(LogPop = log(Population), LogSpend = log(Spending))
+# Figure 2.8, page 92
+gf_point(LogSpend ~ LogPop, data = EduSpending) %>%
+  gf_lm() %>%
+  gf_labs(x = "Log population", y = "Log spending")
+```
+
+#### Example 2.15: Rating versus price and type of laundry detergent
+
+```{r}
+Laundry <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-015LAUND.csv")
+# Figure 2.9, page 93
+gf_point(Rating ~ Price, color = ~ Type, data = Laundry, xlab = "Price per load (cents)") %>%
+  gf_lm()
+```
+
+#### Example 2.16: Laundry rating versus price with a smooth fit
+
+```{r}
+Laundry <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-016LAUND.csv")
+# Figure 2.10, page 94-95
+gf_point(Rating ~ Price, data = Laundry) %>%
+  gf_smooth(span = .5)
+gf_point(Rating ~ Price, data = Laundry) %>%
+  gf_smooth(span = 5)
+```
+
+#### Example 2.17: A smooth fit for education spending and population with logs
+
+```{r}
+# Figure 2.8, page 92
+gf_point(LogSpend ~ LogPop, data = EduSpending) %>%
+  gf_smooth() %>%
+  gf_labs(x = "Log population", y = "Log spending")
+```
+
+### Section 2.3: Correlation
+
+#### Use Your Knowledge: Laundry detergents
+
+```{r}
+# page 102
+cor(Rating ~ Price, data = Laundry)
+```
+
+The `cor()` function finds the correlation of two variables.  
+
+### Section 2.4: Least Squares Regression
+
+#### Example 2.19: Fidgeting and fat gain
+
+```{r}
+Fidgeting <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-019FIDGET.csv")
+# Figure 2.16, page 108
+gf_point(Fat ~ NEA, data = Fidgeting) %>%
+  gf_labs(x = "Nonexercise activity (calories)", y = "Fat gain (kilograms)")
+```
+
+#### Example 2.20: Regression line for fat gain
+
+```{r}
+Fidgeting <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-020FIDGET.csv")
+# Figure 2.17, page 109
+gf_point(Fat ~ NEA, data = Fidgeting) %>%
+  gf_lm() %>%
+  gf_labs(x = "Nonexercise activity (calories)", y = "Fat gain (kilograms)")
+# Use Your Knowledge 2.61: Plot the line
+gf_point(Fat ~ NEA, data = Fidgeting) %>%
+  gf_abline(slope = -.00344, intercept = 4.505) %>%
+  gf_labs(x = "Nonexercise activity (calories)", y = "Fat gain (kilograms)") +
+  ylim(0, 5)
+```
+
+#### Example 2.21: Prediction for fat gain
+
+```{r}
+fatlm <- lm(Fat ~ NEA, data = Fidgeting)
+fatfun <- makeFun(fatlm)
+fatfun(NEA = 400)
+```
+
+We use `makeFun()` to create a function. Here, we make a function from our linear model, created from `lm()`, so we can find the output of a certain value of `NEA`.  
+
+#### Example 2.24: Regression
+
+```{r}
+# page 113
+msummary(fatlm)
+```
+
+The `msummary()` function shows the properties of the function.  
+
+#### Example 2.25: Fidgeting and fat gain
+
+```{r}
+# Figure 2.20, page 115 (split into two plots)
+gf_point(Fat ~ NEA, data = Fidgeting) %>%
+  gf_lm() %>%
+  gf_labs(x = "Nonexercise activity (calories)", y = "Fat gain (kilograms)")
+gf_point(NEA ~ Fat, data = Fidgeting) %>%
+  gf_lm(color = "red") %>%
+  gf_labs(x = "Fat gain (kilograms)", y = "Nonexercise activity")
+
+# Models
+fatlm 
+NEAlm <- lm(NEA ~ Fat, data = Fidgeting)
+NEAlm 
+```
+
+### Section 2.5: Cautions about Correlation and Regression
+
+#### Example 2.26: Residuals for fat gain
+
+Here, we find the residual:  
+
+```{r}
+fatfun(NEA = 135)
+2.7 - fatfun(NEA = 135)
+```
+
+```{r}
+# Figure 2.23, page 124
+gf_point(Fat ~ NEA, data = Fidgeting) %>%
+  gf_lm() %>%
+  gf_labs(x = "Nonexercise activity (calories)", y = "Fat gain (kilograms)")
+gf_point(resid(fatlm) ~ NEA, data = Fidgeting) %>%
+  gf_lm() %>%
+  gf_labs(x = "Nonexercise activity (calories)", y = "Residual")
+```
+
+#### Example 2.27: Patterns in birthrate and Internet user residuals
+
+```{r}
+IntBirth <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-027INBIRTH.csv")
+intbirthlm <- lm(BirthRate2011 ~ Users, data = IntBirth)
+# Figure 2.24, page 126
+gf_point(BirthRate2011 ~ Users, data = IntBirth) %>%
+  gf_lm() %>%
+  gf_labs(x = "Internet users per 100 people", y = "Births per 1000 people")
+gf_point(resid(intbirthlm) ~ Users, data = IntBirth) %>%
+  gf_lm() %>%
+  gf_labs(x = "Internet users per 100 people", y = "Residual")
+```
+
+#### Example 2.28: Diabetes and blood sugar
+
+```{r}
+Diabetes <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-028HBA1C.csv")
+diabeteslm <- lm(FPG_mg_ml ~ HbA1c_percent, data = Diabetes)
+# Figure 2.25, page 127
+gf_point(FPG_mg_ml ~ HbA1c_percent, data = Diabetes) %>%
+  gf_lm() %>%
+  gf_labs(x = "HbA1c (percent)", y = "Fasting plasma glucose (mg/dl)")
+gf_point(resid(diabeteslm) ~ HbA1c_percent, data = Diabetes) %>%
+  gf_lm() %>%
+  gf_labs(x = "HbA1c (percent)", y = "Residual")
+```
+
+#### Example 2.29: Influential observations
+
+We can use the `filter()` function to remove rows from a data set:  
+
+```{r}
+without15lm <- lm(FPG_mg_ml ~ HbA1c_percent, data = filter(Diabetes, FPG_mg_ml <= 300)) # model without subject 15
+without18lm <- lm(FPG_mg_ml ~ HbA1c_percent, data = filter(Diabetes, HbA1c_percent <= 18)) # model without subject 18
+
+# Figure 2.26, page 129
+gf_point(FPG_mg_ml ~ HbA1c_percent, data = Diabetes) %>%
+  gf_lm(color = "red") %>%
+  gf_fun(without15lm, linetype = 2, color = "red") %>%
+  gf_fun(without18lm, linetype = 3, color = "red") %>%
+  gf_labs(x = "HbA1c (percent)", y = "Fasting plasma glucose (mg/dl)")
+```
+
+### Section 2.6: Data Analysis from Two Way Tables
+
+#### Example 2.33: Is the calcium intake adequate?
+
+```{r}
+Calcium <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-033IOM.csv")
+Calcium 
+```
+
+To create a data set with the structure we want (with each count as an observation), we can use `rbind()`.  
+
+```{r}
+# page 137
+
+# Creating data set from counts in the data table
+CalciumC <- rbind(
+ do(194) * data.frame(Age = "A05to10", Met = "No"),
+ do(861) * data.frame(Age = "A05to10", Met = "Yes"), 
+ do(557) * data.frame(Age = "A11to13", Met = "No"),
+ do(417) * data.frame(Age = "A11to13", Met = "Yes")
+)
+
+# Table
+tally(Met ~ Age, data = CalciumC)
+```
+
+#### Example 2.34: Add the margins to the table
+
+```{r}
+tally(Met ~ Age, data = CalciumC, margins = TRUE)
+tally(Age ~ Met, data = CalciumC, margins = TRUE)
+```
+
+#### Example 2.35: The joint distribution
+
+```{r}
+tally(~ Age + Met, data = CalciumC, format = "proportion")
+```
+
+#### Example 2.36: The marginal distribution of age
+
+```{r}
+tally(~ Age, data = CalciumC, format = "proportion")
+```
+
+#### Example 2.37: The marginal distribution of "met requirement"
+
+```{r}
+tally(~ Met, data = CalciumC, format = "proportion")
+```
+
+#### Example 2.39: Conditional distribution of "met requirement" for children aged 5 to 10
+
+```{r}
+# page 141
+tally(Met ~ Age, data = CalciumC, format = "proportion")
+```
+
+#### Example 2.40: Software output
+
+We can use the `mosaic()` function from the `vcd` package to create mosaic plots with color.  
+
+```{r}
+# Figure 2.28 mosaic plot (page 143)
+vcd::mosaic(~ Met + Age, data = CalciumC, shade = TRUE)
+```
+
+#### Example 2.41: Which customer service representative is better?
+
+```{r}
+# page 143
+CustomerService <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter02/EG02-041CUSTSER.csv")
+CustomerService %>%
+  select(Rep, GoalMet, Count)
+```
+
+#### Example 2.42: Look at the data more carefully
+
+```{r}
+CustomerService %>%
+  select(Rep, GoalMet_1, Count_1, GoalMet_2, Count_2)
+```
+
+### Section 2.7: The Question of Causation
+
+

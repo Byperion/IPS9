@@ -1,0 +1,90 @@
+---
+title: "IPS9 in R: Introduction to Inference (Chapter 6)"
+author: "Shukry Zablah (szablah20@amherst.edu) and Nicholas Horton (nhorton@amherst.edu)"
+date: "July 25, 2018"
+output: 
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 4
+    fig_width: 6
+---
+
+
+```{r, include = FALSE}
+# Don't delete this chunk if you are using the mosaic package
+# This loads the mosaic and dplyr packages
+require(mosaic)
+```
+
+```{r, include = FALSE}
+# knitr settings to control how R chunks work.
+knitr::opts_chunk$set(
+  tidy = FALSE,     # display code as typed
+  size = "small"    # slightly smaller font for code
+)
+```
+
+## Introduction and background 
+
+These documents are intended to help describe how to undertake analyses introduced 
+as examples in the Ninth Edition of \emph{Introduction to the Practice of Statistics} (2017) by Moore, McCabe, and Craig.
+
+More information about the book can be found [here](https://macmillanlearning.com/Catalog/product/introductiontothepracticeofstatistics-ninthedition-moore).
+The data used in these documents can be found under Data Sets in the [Student Site](https://www.macmillanlearning.com/catalog/studentresources/ips9e?_ga=2.29224888.526668012.1531487989-1209447309.1529940008#). This
+file as well as the associated R Markdown reproducible analysis source file used to create it can be found at https://nhorton.people.amherst.edu/ips9/.
+
+This work leverages initiatives undertaken by Project MOSAIC (http://www.mosaic-web.org), an NSF-funded effort to improve the teaching of statistics, calculus, science and computing in the undergraduate curriculum. In particular, we utilize the `mosaic` package, which was written to simplify the use of R for introductory statistics courses. A short summary of the R needed to teach introductory statistics can be found in the mosaic package vignettes (http://cran.r-project.org/web/packages/mosaic).  A paper describing the mosaic approach was published in the *R Journal*: https://journal.r-project.org/archive/2017/RJ-2017-024.
+  
+## Chapter 6: Introduction to Inference
+This file replicates the analyses from Chapter 6: Introduction to Inference. 
+
+First, load the packages that will be needed for this document: 
+```{r load-packages}
+library(mosaic)
+library(readr)
+```
+
+### Section 6.1: Estimating with Confidence 
+
+```{r ex6.1, message=FALSE}
+#Fig6.1
+Wade <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter06/EG06-01WADE.csv")
+Wade %>% 
+  mutate(North_south = ns,
+         East_west = ew) %>%
+  gf_point(North_south ~ East_west, data = Wade)
+```
+
+### Section 6.2: Tests of Significance
+
+Look at Ex6.17 in page 375. We will recreate the calculation as a function of the vector of observations, the population mean, and the known standard deviation. We then visualize it and get the probability of getting a z score equal or greater. 
+
+```{r ex6.17}
+#pg375
+z.test <- function(x, mu, sd){
+   z = (mean(x) - mu) / (sd / sqrt(length(x)))
+   return(z)
+}
+z <- z.test(x = c(15.84, 15.33, 15.58), mu = 15, sd = 0.25)
+xpnorm(z)
+```
+
+```{r}
+#Ex6.18
+z.confint <- function(x, mu, sd) {
+  err <- qnorm(0.995)*sd/sqrt(length(x))
+  lower <- mean(x) - err
+  upper <- mean(x) + err
+  return(c(lower, upper))
+}
+
+z.confint(x = c(15.84,15.33,15.58), mu = 15, sd = 0.25)
+```
+
+### Section 6.3: Use and abuse of tests
+### Section 6.4: Power and inference as a decision

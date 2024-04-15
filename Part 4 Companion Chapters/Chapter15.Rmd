@@ -1,0 +1,228 @@
+---
+title: "IPS9 in R: Nonparametric tests (Chapter 15)"
+author: "Shukry Zablah (szablah20@amherst.edu) and Nicholas Horton (nhorton@amherst.edu)"
+date: "July 22, 2018"
+output: 
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 4
+    fig_width: 6
+---
+
+
+```{r, include = FALSE}
+# Don't delete this chunk if you are using the mosaic package
+# This loads the mosaic and dplyr packages
+require(mosaic)
+```
+
+```{r, include = FALSE}
+# knitr settings to control how R chunks work.
+knitr::opts_chunk$set(
+  tidy = FALSE,     # display code as typed
+  size = "small"    # slightly smaller font for code
+)
+```
+
+## Introduction and background 
+
+These documents are intended to help describe how to undertake analyses introduced 
+as examples in the Ninth Edition of \emph{Introduction to the Practice of Statistics} (2017) by Moore, McCabe, and Craig.
+
+More information about the book can be found [here](https://macmillanlearning.com/Catalog/product/introductiontothepracticeofstatistics-ninthedition-moore).
+The data used in these documents can be found under Data Sets in the [Student Site](https://www.macmillanlearning.com/catalog/studentresources/ips9e?_ga=2.29224888.526668012.1531487989-1209447309.1529940008#). This
+file as well as the associated R Markdown reproducible analysis source file used to create it can be found at https://nhorton.people.amherst.edu/ips9/.
+
+This work leverages initiatives undertaken by Project MOSAIC (http://www.mosaic-web.org), an NSF-funded effort to improve the teaching of statistics, calculus, science and computing in the undergraduate curriculum. In particular, we utilize the `mosaic` package, which was written to simplify the use of R for introductory statistics courses. A short summary of the R needed to teach introductory statistics can be found in the mosaic package vignettes (http://cran.r-project.org/web/packages/mosaic).  A paper describing the mosaic approach was published in the *R Journal*: https://journal.r-project.org/archive/2017/RJ-2017-024.
+  
+## Chapter 15: Nonparametric tests
+This file replicates the analyses from Chapter 15: Nonparametric tests.
+
+First, load the packages that will be needed for this document: 
+```{r load-packages, message=FALSE}
+library(mosaic)
+library(readr)
+library(tidyr)
+```
+
+The skills in the this chapter will help analyze data that don't follow the Normal distribution and are not fit for the tests we previously looked at. 
+
+### Section 15.1: The Wilcoxon rank sum test
+
+Let's read in the csv file for the Hits data in Example 15.1. 
+
+```{r Hits1, message=FALSE}
+Hits <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter15/EG15-001HITS.csv")
+Hits
+```
+
+To recreate the table shown, just select the two relevant columns for the hits of each group and drop the `NA` values. 
+
+```{r Hits2}
+#Ex15.1
+Hits %>% 
+  select(HitsAmer, HitsNat) %>%
+  filter(!is.na(HitsAmer))
+```
+
+Dealing with `NA` values inside our observations can take up uneccesary space. Use the `is.na()` function to identify observations that have an `NA` value in a column. To remove those obvservations, use `filter()` and select those observations that are not NA by using the `!` symbol.  
+
+Now let's set up the rank transformation. 
+
+```{r Hits3}
+nrows <- nrow(Hits)
+RanksHits <- Hits %>%
+  select(League, Hits) %>%
+  arrange(Hits) %>%
+  mutate(Rank = 1:nrows)
+RanksHits
+```
+
+Next we sum the ranks for each group. We will take advantage of the `sum()` function.
+
+```{r Hits4}
+#Pg15.5
+sum(Rank ~ League, data = RanksHits)
+```
+
+The intuition behind the test is that if there was no difference between the leagues both sums would be the same. 
+
+Finally, to perform the Wilcoxon Rank Sums test we use `wilcox.test()`.
+
+```{r Hits5}
+#Fig15.3
+wilcox.test(Hits ~ League, data = Hits)
+```
+
+In page 10, Example 15.6 the book discusses how to deal with ties in the dataset (remember we rank the observations). 
+
+For Example 15.7, we have to recreate the dataset and confirm we can get the table of counts. 
+
+```{r Exerg1}
+#Ex15.7
+Exerg <- rbind(
+  do(6) * data.frame(Exergamer = "Yes", TV_time = "None"),
+  do(160) * data.frame(Exergamer= "Yes", TV_time = "<2 hours"),
+  do(115) * data.frame(Exergamer = "Yes", TV_time = ">=2 hours"),
+  do(48) * data.frame(Exergamer = "No", TV_time = "None"),
+  do(616) * data.frame(Exergamer = "No", TV_time = "<2 hours"),
+  do(255) * data.frame(Exergamer = "No", TV_time = ">=2 hours")
+)
+```
+
+```{r Exerg2}
+#Ex15.7
+tally(~ Exergamer + TV_time, data = Exerg)
+tally(~ Exergamer + TV_time, data = Exerg, format = "percent", margins = TRUE)
+```
+
+Success! Now let's perform the Wilcox Rank Sum Test. R will take care of the fact that there are "ties" in the dataset. However, we do have to code the variables into numerics in order for the test to run. 
+
+```{r Exerg3}
+#Ex.15.8
+Exerg %>% 
+  mutate(Val = recode(TV_time,
+                      `None` = 0,
+                      `<2 hours` = 1,
+                      `>=2 hours` = 2)
+         ) %>% 
+  wilcox.test(Val ~ Exergamer, data = .)
+```
+
+
+### Section 15.2: The Wilcoxon signed rank test
+
+Read in the csv file. 
+
+```{r Story1, message=FALSE}
+#Ex15.9
+Story <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter15/EG15-009STORY.csv")
+Story
+```
+
+Filter the relevant observations by using `filter()`.
+
+```{r Story2}
+#Ex15.9
+StoryTable <- Story %>%
+  filter(Progress == "Low") 
+```
+
+We will prove why our previous tests are not suitable for the scenario. 
+
+```{r Story3}
+#Ex15.9
+gf_qq(~ DiffLow, data = StoryTable) # XX add line
+gf_histogram(~ DiffLow, data = StoryTable, binwidth = 0.2, center = 0.5)
+```
+
+The plots suggest lack of Normality. This is why we use a rank test. 
+
+Before we do the test we have to format our dataset differently. Specifically, we need a column with the story type that has two levels. To do this we will use the `gather()` function that takes the names for the the two new columns that will be created and then a list of columns in the dataset that will make up the new ones. In this case we combine Story1 and Story2 into one column. Each observation in this column has the type of story attached to it. 
+
+The same `wilcox.test()` function will be used to perform the test. However, we specify `paired = TRUE` in order to perform the signed rank test from the book. The option `alternative = "less"` gets the one sided p-value that we are testing for. 
+
+```{r Story4}
+#Fig15.7
+StoryTableNarrower <- StoryTable %>%
+  gather(key = "StoryType", value = "Values", Story1, Story2) 
+StoryTableNarrower
+
+wilcox.test(Values ~ StoryType, data = StoryTableNarrower, paired = TRUE, alternative = "less")
+```
+
+Example 15.12 uses the same function as before. 
+
+### Section 15.3: The Kruskal-Wallis test
+
+The ANOVA test needs strict conditions to hold. The Kruskal-Wallis test provides an alternative to the one-way ANOVA test.
+
+Let's read in the dataset. 
+
+```{r Weeds1, message=FALSE}
+#Ex15.14
+Weeds <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter15/EG15-014WEEDS.csv")
+Weeds
+```
+
+Recreate the summary statistics. 
+
+```{r Weeds2}
+#Ex15.14
+favstats(yield ~ weeds, data = Weeds)
+```
+
+And get the test results! You can use `kruskal.test()` to perform the Kruskal-Wallis Rank Sum test. 
+
+```{r Weeds3}
+#Ex15.15
+kruskal.test(yield ~ weeds, data = Weeds)
+```
+
+These functions can be black boxes unless you understand the underlying process. Be sure to understand both the test procedure and know about the function in R. Type `?kruskal.test()` to find out more about the function. (You can do this for every function).
+
+Let's look at another dataset. 
+
+```{r Organic1, message=FALSE}
+#Ex15.16
+Organic <- read_csv("https://nhorton.people.amherst.edu/ips9/data/chapter15/EG15-016ORGANIC.csv")
+```
+
+```{r Organic2}
+#Ex15.16
+favstats(Score ~ Food, data = Organic)
+```
+
+And perform the same test.
+
+```{r Organic3}
+#Ex15.16
+kruskal.test(Score ~ as.factor(Food), data = Organic)
+```
+
+Note that the function won't work if the variable that has your groups is of type `char`. To fix this wrap the `as.factor()` function around it. 
